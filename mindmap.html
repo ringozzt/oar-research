@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>oar 调研 · 交互思维导图</title>
+<style>
+  :root { --bg:#0f1115; --fg:#e8eaf0; --muted:#9aa3b2; --accent:#7cc4ff; --card:#171b22; --border:#262c36; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--fg); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; margin:0; padding:24px; line-height:1.6; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .toolbar { margin-bottom:16px; display:flex; gap:8px; }
+  button { background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:8px; padding:6px 14px; cursor:pointer; font-size:13px; }
+  button:hover { border-color:var(--accent); }
+  ul.tree, ul.tree ul { list-style:none; margin:0; padding-left:22px; }
+  ul.tree { padding-left:0; }
+  li.node { margin:2px 0; }
+  .label { cursor:pointer; display:inline-block; padding:3px 10px; border-radius:8px; }
+  .label:hover { background:var(--card); }
+  .label .caret { display:inline-block; width:16px; color:var(--accent); font-size:12px; }
+  .label .text { font-size:14px; }
+  li.leaf > .label { cursor:default; }
+  li.leaf > .label:hover { background:none; }
+  li.leaf > .label .text { color:var(--muted); font-size:13px; }
+  li.root > .label .text { font-size:17px; font-weight:700; }
+  li.l1 > .label .text { font-size:15px; font-weight:600; color:var(--accent); }
+  ul.collapsed { display:none; }
+  .src { margin-top:24px; font-size:12px; color:var(--muted); }
+  .src a { color:var(--accent); }
+</style>
+</head>
+<body>
+<h1>oar (Open Agent Runtime) · 交互思维导图</h1>
+<div class="sub">botiverse/oar 调研 · 2026-10-01 · 点击节点展开 / 折叠</div>
+<div class="toolbar">
+  <button id="expandAll">全部展开</button>
+  <button id="collapseAll">全部折叠</button>
+</div>
+<ul class="tree" id="tree"></ul>
+<div class="src">完整报告见 <a href="https://github.com/ringozzt/oar-research">ringozzt/oar-research · README.md</a> ｜ 上游 <a href="https://github.com/botiverse/oar">botiverse/oar</a></div>
+<script>
+const data = ["oar 调研：Open Agent Runtime", [
+  ["项目快照", [
+    "botiverse/oar · Apache-2.0 · Organization 账号",
+    "2026-08-05 创建（约 2 个月）· ~143 star · 375 commits · 31 tags · 0 releases",
+    "语言：TypeScript ~1.36MB 绝对主导",
+    "pnpm monorepo：packages/oar（库）+ packages/cli（CLI）",
+    "docs/ design · spec · runtimes · prior-arts ＋ experiments/ ＋ apps/arena ＋ sea-trial/",
+    "支持 7 runtimes：Antigravity / Claude Code / Codex / Cursor / Grok Build / Kimi Code / Pi",
+    "ESM-only · Node.js 24+"
+  ]],
+  ["一句话定位", [
+    "所有 coding-agent harness 的统一编程接口（provider-independent programming interface）",
+    "口号：Delete harness logic and focus on outcomes and UX"
+  ]],
+  ["核心思想：library-not-protocol", [
+    ["反对什么", [
+      "指望一根 wire protocol（ACP）解决所有 harness 差异的天真",
+      "S3-compatible 式\"假装大家都一样\"的最小公分母"
+    ]],
+    ["主张什么", [
+      "protocol problems 真实存在，但用 library 形态解决",
+      "per-runtime 原生接入：SDK / CLI / subprocess / app-server / ACP 变体",
+      "统一的只是进程内编程契约"
+    ]],
+    ["OpenDAL 类比", [
+      "OpenDAL 对存储 ＝ oar 对 agent harness",
+      "library 的好处：可以诚实地不一样，不被兼容层封死"
+    ]],
+    ["三条硬规矩", [
+      "生产侧无损：未知事件永不丢弃，rawEvents()/records() 逃生舱",
+      "诚实能力声明：typed unsupported，绝不编造 runtime 没给的结构",
+      "版本 skew 不静默出错：support window＋窗口外 typed reject"
+    ]],
+    ["背后的赌注", [
+      "创新集中在应用层，不在 harness 层；各家 runtime 正在收敛",
+      "赌错的对冲：无损生产者＋per-runtime 能力声明"
+    ]]
+  ]],
+  ["优势", [
+    "N→1 集成：detect/install/version/auth/session 写一次",
+    "无损生产者＋语义清晰的消费侧（一事实一 Event，status 是 fold）",
+    "不搞最小公分母：强的不被拖后腿，弱的明确说不支持",
+    "取消/steer 语义显式：typed acceptance，被拒时输入物归原主",
+    "版本 skew 安全：先报错而不是先算错",
+    "证据驱动的工程纪律：experiments / decisions.md / decision gates / sea-trial",
+    "白送的选型调研：7 个同类项目逐功能对照",
+    "Host 零绑架：不做存储回放，projection 可丢弃重建"
+  ]],
+  ["核心技术", [
+    ["六层系统", [
+      "Discover（安装探测·auth·模型）→ Declare（能力·限制·证据）→ Control（会话·prompt·steer·abort）",
+      "→ Record（有序无损流）→ Project（status·用量·图）→ Continue（cursor·resume·voyage·handoff）→ 回到 Discover",
+      "oar 拥有观察与 record 语义；host 拥有调度、策略、持久化、呈现"
+    ]],
+    ["统一事件模型", [
+      "text_delta / tool_call_started / turn_ended / reasoning / usage / compaction / retry …",
+      "每个事件带 seq＋agentPath 归因；coalesceText 按块给文本"
+    ]],
+    ["Record-stream 契约（docs/spec/）", [
+      "design 管 why，spec 管 what：record 形状、归因、session graph、cursor"
+    ]],
+    ["Per-runtime adapter（docs/runtimes/）", [
+      "每家一页：原生接口、原生概念、当前映射、实证证据"
+    ]],
+    ["Liveness", [
+      "“它活着还是死了，为什么”——dispose 语义＋post-mortem records",
+      "Silence is unknown, never success."
+    ]],
+    ["Projection 与 Continuation", [
+      "conversation projection 给 chat UI；全是可重建的 fold",
+      "cursor / native resume / voyage log / handoff 让工作可累积"
+    ]],
+    ["Agent operating loop", [
+      "Orient → Choose → Act → Observe → Verify → Checkpoint → Handoff"
+    ]]
+  ]],
+  ["15 个硬问题（精华）", [
+    ["接入层（4）", [
+      "接入机制异构：一家多机制，驱动方式 per-vendor 调研",
+      "detect/install/version skew：support window＋typed reject",
+      "auth：登录流、凭证位置、过期行为各异",
+      "OS 矩阵：CI 抓到 3 个 Windows-only bug"
+    ]],
+    ["会话与事件（4）", [
+      "resume 不是通用原语：codex replay 全量历史，pi fork 是 transcript 分支",
+      "事件词表无共享语义；“自己合成 turn 边界”是陷阱",
+      "status 是 fold over events，别把控制流当事实流",
+      "进程死亡边缘：dangling tool call 需要显式 dispose"
+    ]],
+    ["归因（2，最被低估）", [
+      "sub-agent 关联：kimi 的 ACP adapter 直接丢 sub-agent 事件",
+      "usage 会计：cumulative vs delta；grok 重叠视图不能求和"
+    ]],
+    ["行为诚实（3）", [
+      "typed unsupported，不要最小公分母",
+      "vendor quirks：claude 401 静默重试、400 带 subtype \"success\"",
+      "cancel vs steer vs interject 各家不同"
+    ]],
+    ["单进程之外（2）", [
+      "context/compaction 连续性由 record-stream spec 定义",
+      "placement：session/process/host 三个生命周期层"
+    ]]
+  ]],
+  ["对照", [
+    ["vs ACP", [
+      "不反 ACP：ACP 变体是适配的 N 种机制之一",
+      "敌人是“一根线打天下”，统一发生在 library 契约层"
+    ]],
+    ["vs k2-bridge", [
+      "同一道题的两个切面：协议适配层 vs 库抽象层",
+      "启示：15 条硬问题当 checklist；诚实声明＋typed unsupported＋版本策略值得抄"
+    ]]
+  ]],
+  ["风险与边界", [
+    "年轻：约 2 个月，0 releases，API 还在 churn",
+    "TS-only（多语言绑定是明确非目标），Node 24+",
+    "赌注风险：若 harness 持续分化，per-runtime quirks 线性膨胀",
+    "不做存储/回放；单 harness 场景直接调原生"
+  ]]
+]];
+
+const tree = document.getElementById('tree');
+function build(nodes, depth) {
+  const ul = document.createElement('ul');
+  if (depth > 0) ul.className = 'tree';
+  nodes.forEach(n => {
+    const li = document.createElement('li');
+    const isBranch = Array.isArray(n[1]);
+    const title = isBranch ? n[0] : n;
+    li.className = 'node ' + (isBranch ? (depth === 0 ? 'root' : depth === 1 ? 'l1' : '') : 'leaf');
+    const label = document.createElement('span');
+    label.className = 'label';
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+    caret.textContent = isBranch ? '▾' : '·';
+    const text = document.createElement('span');
+    text.className = 'text';
+    text.textContent = title;
+    label.appendChild(caret); label.appendChild(text);
+    li.appendChild(label);
+    if (isBranch) {
+      const child = build(n[1], depth + 1);
+      li.appendChild(child);
+      label.addEventListener('click', () => {
+        child.classList.toggle('collapsed');
+        caret.textContent = child.classList.contains('collapsed') ? '▸' : '▾';
+      });
+    }
+    ul.appendChild(li);
+  });
+  return ul;
+}
+tree.appendChild(build(data[1], 1));
+document.getElementById('expandAll').onclick = () => {
+  tree.querySelectorAll('ul.collapsed').forEach(u => u.classList.remove('collapsed'));
+  tree.querySelectorAll('.caret').forEach(c => { if (c.textContent !== '·') c.textContent = '▾'; });
+};
+document.getElementById('collapseAll').onclick = () => {
+  tree.querySelectorAll('ul ul').forEach(u => u.classList.add('collapsed'));
+  tree.querySelectorAll('.caret').forEach(c => { if (c.textContent !== '·') c.textContent = '▸'; });
+};
+</script>
+</body>
+</html>
